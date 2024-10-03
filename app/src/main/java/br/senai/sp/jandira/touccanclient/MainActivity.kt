@@ -29,9 +29,12 @@ class MainActivity : ComponentActivity() {
                 Surface(color = Color(0xffEBEBEB)) {
                     val navController = rememberNavController()
 
+                    val idCliente = ClientId(
+                        id = 1
+                    )
                     NavHost(
                         navController = navController,
-                        startDestination = "logIn") {
+                        startDestination = "home/${idCliente}") {
 
 
                         composable(route = "logIn"){ Login(navController) }
@@ -42,7 +45,7 @@ class MainActivity : ComponentActivity() {
                         ){ backStackEntry ->
                             val clientId = backStackEntry.arguments?.getString("id")
                             Log.i("Client: ", clientId.toString())
-                            val idCliente = Json.decodeFromString<ClientId>(clientId ?: "")
+//                            val idCliente = Json.decodeFromString<ClientId>(clientId ?: "")
                             Home(navController, idCliente, this@MainActivity) }
 
                         composable(route = "criarAnuncio/{id}",
