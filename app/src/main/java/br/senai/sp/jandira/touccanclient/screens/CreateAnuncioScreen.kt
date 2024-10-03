@@ -115,9 +115,12 @@ fun CreateAnuncio(navController: NavHostController, idCliente: ClientId, mainAct
         mutableStateOf("")
     }
 
-
     var horarioPrazoState = remember {
         mutableStateOf("")
+    }
+
+    var caracteresState = remember{
+        mutableStateOf(0)
     }
 
 //    Scaffold (
@@ -242,7 +245,7 @@ fun CreateAnuncio(navController: NavHostController, idCliente: ClientId, mainAct
             )
             TextField(
                 modifier = Modifier.fillMaxWidth().height(180.dp),
-                value = tituloState.value,
+                value = descricaoState.value,
                 colors = TextFieldDefaults.colors(
                     unfocusedContainerColor = Color.White,
                     focusedContainerColor = Color.White,
@@ -250,7 +253,13 @@ fun CreateAnuncio(navController: NavHostController, idCliente: ClientId, mainAct
                     focusedIndicatorColor = Color(laranja)
                 ),
                 shape = RoundedCornerShape(10.dp),
-                onValueChange = {tituloState.value = it}
+                onValueChange = {
+                    if(it.length <=500)
+                        descricaoState.value = it
+
+                    caracteresState.value = descricaoState.value.length
+                                },
+                suffix = {Text("${caracteresState.value}/500")}
             )
             Spacer(modifier = Modifier.height(12.dp))
 
