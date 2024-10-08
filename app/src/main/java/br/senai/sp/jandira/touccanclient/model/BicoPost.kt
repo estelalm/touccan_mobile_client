@@ -1,14 +1,14 @@
 package br.senai.sp.jandira.touccanclient.model
 
 data class BicoPost(
-    val titulo: String = "",
-    val descricao: String = "",
-    val horario_inicio: String = "",
-    val data_inicio: String = "",
-    val horario_limite: String = "",
-    val data_limite: String = "",
-    val salario: Number = 0,
-    val id_dificuldade: Int = 0,
-    val id_categoria: Int = 0,
-    val id_cliente: Int = 0
+    var titulo: String = "",
+    var descricao: String = "",
+    var horario_inicio: String = "",
+    var data_inicio: String = "",
+    var horario_limite: String = "",
+    var data_limite: String = "",
+    var salario: Number = 0,
+    var id_dificuldade: Int = 0,
+    var id_categoria: Int = 0,
+    var id_cliente: Int = 0
 )
