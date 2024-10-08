@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -26,9 +27,11 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -36,13 +39,17 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldColors
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.material3.TimeInput
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +58,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.painter.Painter
@@ -73,6 +81,7 @@ import br.senai.sp.jandira.touccanclient.model.ClientId
 import br.senai.sp.jandira.touccanclient.model.Dificuldade
 import br.senai.sp.jandira.touccanclient.model.Dificuldades
 import br.senai.sp.jandira.touccanclient.model.LoginResult
+import br.senai.sp.jandira.touccanclient.model.PostBicoResponse
 import br.senai.sp.jandira.touccanclient.service.RetrofitFactory
 import br.senai.sp.jandira.touccanclient.ui.theme.Inter
 import kotlinx.serialization.encodeToString
@@ -80,6 +89,10 @@ import kotlinx.serialization.json.Json
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -122,12 +135,48 @@ fun CreateAnuncio(navController: NavHostController, idCliente: ClientId, mainAct
         mutableStateOf("")
     }
 
-    var caracteresState = remember{
+    var caracteresState = remember {
         mutableStateOf(0)
     }
     val isLoadingCategoria = remember { mutableStateOf(true) }
-    val isLoadingDificuldade = remember {mutableStateOf(true)}
+    val isLoadingDificuldade = remember { mutableStateOf(true) }
 
+
+    //datas
+    fun convertMillisToDate(millis: Long): String {
+        val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+        return formatter.format(Date(millis))
+    }
+    var showDatePicker by remember { mutableStateOf(false) }
+    val datePickerState = rememberDatePickerState()
+    val selectedDate = datePickerState.selectedDateMillis?.let {
+        convertMillisToDate(it)
+    } ?: ""
+
+
+    var showDatePrazoPicker by remember { mutableStateOf(false) }
+    val datePrazoPickerState = rememberDatePickerState()
+    val selectedDatePrazo = datePrazoPickerState.selectedDateMillis?.let {
+        convertMillisToDate(it)
+    } ?: ""
+
+//    fun validarData (data: String): String {
+//
+//        if(data != "") return data.split('/').reversed().joinToString("-")
+//
+//    }
+
+
+    //horarios
+    val currentTime = Calendar.getInstance()
+
+    val timePickerState = rememberTimePickerState(
+        initialHour = currentTime.get(Calendar.HOUR_OF_DAY),
+        initialMinute = currentTime.get(Calendar.MINUTE),
+        is24Hour = true,
+    )
+    var showTimePicker by remember { mutableStateOf(false) }
+    var selectedTime = "${timePickerState.hour}:" + timePickerState.minute
 
     // CATEGORIAS
     var categoriaList = remember { mutableStateOf(listOf<Categoria>()) }
@@ -135,7 +184,7 @@ fun CreateAnuncio(navController: NavHostController, idCliente: ClientId, mainAct
         .getBicoService()
         .getAllCategorias()
 
-    callCategoriaList.enqueue(object: Callback<Categorias> {
+    callCategoriaList.enqueue(object : Callback<Categorias> {
         override fun onResponse(call: Call<Categorias>, res: Response<Categorias>) {
             Log.i("ResponseC: ", res.toString())
             categoriaList.value = res.body()!!.categorias
@@ -154,7 +203,7 @@ fun CreateAnuncio(navController: NavHostController, idCliente: ClientId, mainAct
         .getBicoService()
         .getAllDificuldades()
 
-    callDificuldadeList.enqueue(object: Callback<Dificuldades> {
+    callDificuldadeList.enqueue(object : Callback<Dificuldades> {
         override fun onResponse(call: Call<Dificuldades>, res: Response<Dificuldades>) {
             Log.i("ResponseD: ", res.toString())
             dificuldadeList.value = res.body()!!.dificuldade
@@ -172,15 +221,22 @@ fun CreateAnuncio(navController: NavHostController, idCliente: ClientId, mainAct
 
 
 
-    Column (
-        modifier = Modifier.fillMaxSize().padding(top = 32.dp).verticalScroll(rememberScrollState()),
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(top = 32.dp)
+            .verticalScroll(rememberScrollState()),
     ) {
-        Row (
-            modifier = Modifier.fillMaxWidth().height(80.dp),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp),
             horizontalArrangement = Arrangement.SpaceBetween
-        ){
+        ) {
             IconButton(
-                onClick = {},
+                onClick = {
+                    navController.popBackStack()
+                },
             ) {
                 Icon(
                     modifier = Modifier
@@ -199,11 +255,14 @@ fun CreateAnuncio(navController: NavHostController, idCliente: ClientId, mainAct
             }
         }
         Column(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 10.dp)
-        ){
-            Column (
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 32.dp, vertical = 10.dp)
+        ) {
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally){
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
                 Text(
                     text = "Criar Anúncio",
                     textAlign = TextAlign.Center,
@@ -239,7 +298,7 @@ fun CreateAnuncio(navController: NavHostController, idCliente: ClientId, mainAct
                     focusedIndicatorColor = Color(laranja)
                 ),
                 shape = RoundedCornerShape(10.dp),
-                onValueChange = {tituloState.value = it}
+                onValueChange = { tituloState.value = it }
             )
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -250,7 +309,9 @@ fun CreateAnuncio(navController: NavHostController, idCliente: ClientId, mainAct
                 modifier = Modifier.padding(horizontal = 8.dp)
             )
             TextField(
-                modifier = Modifier.fillMaxWidth().height(180.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(180.dp),
                 value = descricaoState.value,
                 colors = TextFieldDefaults.colors(
                     unfocusedContainerColor = Color.White,
@@ -260,19 +321,19 @@ fun CreateAnuncio(navController: NavHostController, idCliente: ClientId, mainAct
                 ),
                 shape = RoundedCornerShape(10.dp),
                 onValueChange = {
-                    if(it.length <=500)
+                    if (it.length <= 500)
                         descricaoState.value = it
 
                     caracteresState.value = descricaoState.value.length
-                                },
-                suffix = {Text("${caracteresState.value}/500")}
+                },
+                suffix = { Text("${caracteresState.value}/500") }
             )
             Spacer(modifier = Modifier.height(12.dp))
 
-            Row (
+            Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
-            ){
+            ) {
                 Column {
                     Text(
                         text = "Horário",
@@ -290,8 +351,35 @@ fun CreateAnuncio(navController: NavHostController, idCliente: ClientId, mainAct
                             focusedIndicatorColor = Color(laranja)
                         ),
                         shape = RoundedCornerShape(10.dp),
-                        onValueChange = {horarioState.value = it}
+                        onValueChange = { horarioState.value = it },
+                        trailingIcon = {
+                            IconButton(onClick = { showTimePicker = !showTimePicker }) {
+                                Icon(
+                                    imageVector = Icons.Default.DateRange,
+                                    contentDescription = "Selecione o horário"
+                                )
+                            }
+                        }
                     )
+                }
+                if (showTimePicker) {
+                    Popup(
+                        onDismissRequest = { showTimePicker = false },
+                        alignment = Alignment.TopStart
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .offset(y = 64.dp)
+                                .shadow(elevation = 4.dp)
+                                .background(MaterialTheme.colorScheme.surface)
+                                .padding(16.dp)
+                        ) {
+                            TimeInput(
+                                    state = timePickerState
+                            )
+                        }
+                    }
                 }
                 Column {
                     Text(
@@ -302,7 +390,7 @@ fun CreateAnuncio(navController: NavHostController, idCliente: ClientId, mainAct
                     )
                     TextField(
                         modifier = Modifier.width(165.dp),
-                        value = dataState.value,
+                        value = selectedDate,
                         colors = TextFieldDefaults.colors(
                             unfocusedContainerColor = Color.White,
                             focusedContainerColor = Color.White,
@@ -310,100 +398,135 @@ fun CreateAnuncio(navController: NavHostController, idCliente: ClientId, mainAct
                             focusedIndicatorColor = Color(laranja)
                         ),
                         shape = RoundedCornerShape(10.dp),
-                        onValueChange = {dataState.value = it}
+                        onValueChange = { dataState.value = it },
+                        trailingIcon = {
+                            IconButton(onClick = { showDatePicker = !showDatePicker }) {
+                                Icon(
+                                    imageVector = Icons.Default.DateRange,
+                                    contentDescription = "Select date"
+                                )
+                            }
+                        }
                     )
                 }
             }
 
-            Text(
-                text = "Localização",
-                fontFamily = Inter,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
-            TextField(
-                modifier = Modifier.fillMaxWidth(),
-                value = localizacaoState.value,
-                colors = TextFieldDefaults.colors(
-                    unfocusedContainerColor = Color.White,
-                    focusedContainerColor = Color.White,
-                    unfocusedIndicatorColor = Color(laranja),
-                    focusedIndicatorColor = Color(laranja)
-                ),
-                shape = RoundedCornerShape(10.dp),
-                onValueChange = {localizacaoState.value = it}
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Salário",
-                fontFamily = Inter,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
-            TextField(
-                modifier = Modifier.fillMaxWidth(),
-                value = salarioState.value,
-                colors = TextFieldDefaults.colors(
-                    unfocusedContainerColor = Color.White,
-                    focusedContainerColor = Color.White,
-                    unfocusedIndicatorColor = Color(laranja),
-                    focusedIndicatorColor = Color(laranja)
-                ),
-                shape = RoundedCornerShape(10.dp),
-                prefix = { Text("R$", fontFamily = Inter) },
-                onValueChange = {salarioState.value = it}
-            )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Text(
-                text = "Nível de dificuldade",
-                fontFamily = Inter,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
-            if (isLoadingDificuldade.value) {
-                CircularProgressIndicator()
-            } else {
-                Log.i("Dificuldades", dificuldadeList.value.toString())
-                DropdownDificuldade(itemList = dificuldadeList.value, selectedIndex = selectedIndexDificuldade, onItemClick = {selectedIndexDificuldade = it})
-            }
-            Spacer(modifier = Modifier.height(12.dp))
-
-
-            Text(
-                text = "Categoria",
-                fontFamily = Inter,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
-
-            if (isLoadingCategoria.value) {
-                CircularProgressIndicator() // Ou outro componente de loading
-            } else {
-                // Depois que a lista estiver carregada, chama o DropdownCategoria
-                Log.i("Categorias", categoriaList.value.toString())
-                DropdownCategoria(itemList = categoriaList.value, selectedIndex = selectedIndexCategoria, onItemClick = {selectedIndexCategoria = it})
+            if (showDatePicker) {
+                Popup(
+                    onDismissRequest = { showDatePicker = false },
+                    alignment = Alignment.TopStart
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .offset(y = 64.dp)
+                            .shadow(elevation = 4.dp)
+                            .background(MaterialTheme.colorScheme.surface)
+                            .padding(16.dp)
+                    ) {
+                        DatePicker(
+                            state = datePickerState,
+                            showModeToggle = false
+                        )
+                    }
+                }
             }
 
+                Text(
+                    text = "Localização",
+                    fontFamily = Inter,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+                TextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = localizacaoState.value,
+                    colors = TextFieldDefaults.colors(
+                        unfocusedContainerColor = Color.White,
+                        focusedContainerColor = Color.White,
+                        unfocusedIndicatorColor = Color(laranja),
+                        focusedIndicatorColor = Color(laranja)
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    onValueChange = { localizacaoState.value = it }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Salário",
+                    fontFamily = Inter,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+                TextField(
+                    modifier = Modifier.fillMaxWidth(),
+                    value = salarioState.value,
+                    colors = TextFieldDefaults.colors(
+                        unfocusedContainerColor = Color.White,
+                        focusedContainerColor = Color.White,
+                        unfocusedIndicatorColor = Color(laranja),
+                        focusedIndicatorColor = Color(laranja)
+                    ),
+                    shape = RoundedCornerShape(10.dp),
+                    prefix = { Text("R$", fontFamily = Inter) },
+                    onValueChange = { salarioState.value = it }
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Text(
+                    text = "Nível de dificuldade",
+                    fontFamily = Inter,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+                if (isLoadingDificuldade.value) {
+                    CircularProgressIndicator()
+                } else {
+                    Log.i("Dificuldades", dificuldadeList.value.toString())
+                    DropdownDificuldade(
+                        itemList = dificuldadeList.value,
+                        selectedIndex = selectedIndexDificuldade,
+                        onItemClick = { selectedIndexDificuldade = it })
+                }
+                Spacer(modifier = Modifier.height(12.dp))
 
 
-            Spacer(modifier = Modifier.height(12.dp))
+                Text(
+                    text = "Categoria",
+                    fontFamily = Inter,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+
+                if (isLoadingCategoria.value) {
+                    CircularProgressIndicator() // Ou outro componente de loading
+                } else {
+                    // Depois que a lista estiver carregada, chama o DropdownCategoria
+                    Log.i("Categorias", categoriaList.value.toString())
+                    DropdownCategoria(
+                        itemList = categoriaList.value,
+                        selectedIndex = selectedIndexCategoria,
+                        onItemClick = { selectedIndexCategoria = it })
+                }
 
 
-            Text(
-                text = "Prazo do anúncio",
-                fontFamily = Inter,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(horizontal = 8.dp)
-            )
-            Row (
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ){
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+
+                Text(
+                    text = "Prazo do anúncio",
+                    fontFamily = Inter,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(horizontal = 8.dp)
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
                     TextField(
                         modifier = Modifier.width(165.dp),
-                        value = dataPrazoState.value,
+                        value = selectedDatePrazo,
                         colors = TextFieldDefaults.colors(
                             unfocusedContainerColor = Color.White,
                             focusedContainerColor = Color.White,
@@ -417,9 +540,37 @@ fun CreateAnuncio(navController: NavHostController, idCliente: ClientId, mainAct
                                 color = Color(cinza),
                                 fontFamily = Inter
                             )
-                                },
-                        onValueChange = {dataPrazoState.value = it}
+                        },
+                        onValueChange = { dataPrazoState.value = it },
+                        trailingIcon = {
+                            IconButton(onClick = { showDatePrazoPicker = !showDatePrazoPicker }) {
+                                Icon(
+                                    imageVector = Icons.Default.DateRange,
+                                    contentDescription = "Select date"
+                                )
+                            }
+                        }
                     )
+                    if (showDatePrazoPicker) {
+                        Popup(
+                            onDismissRequest = { showDatePrazoPicker = false },
+                            alignment = Alignment.TopStart
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .offset(y = 64.dp)
+                                    .shadow(elevation = 4.dp)
+                                    .background(MaterialTheme.colorScheme.surface)
+                                    .padding(16.dp)
+                            ) {
+                                DatePicker(
+                                    state = datePrazoPickerState,
+                                    showModeToggle = false
+                                )
+                            }
+                        }
+                    }
                     TextField(
                         modifier = Modifier.width(165.dp),
                         value = horarioPrazoState.value,
@@ -436,83 +587,94 @@ fun CreateAnuncio(navController: NavHostController, idCliente: ClientId, mainAct
                                 color = Color(cinza),
                                 fontFamily = Inter
                             )
-                                },
-                        onValueChange = {horarioPrazoState.value = it}
+                        },
+                        onValueChange = { horarioPrazoState.value = it }
                     )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Button(
+                    onClick = {
+
+                        novoBico.titulo = tituloState.value
+                        novoBico.descricao = descricaoState.value
+                        novoBico.horario_inicio = horarioState.value
+                        novoBico.horario_limite = horarioPrazoState.value
+                        novoBico.data_inicio = dataState.value
+                        novoBico.data_limite = dataPrazoState.value
+                        novoBico.salario = salarioState.value.toFloat()
+                        novoBico.id_cliente = idCliente.id
+                        novoBico.id_categoria = categoriaList.value[selectedIndexCategoria].id
+                        novoBico.id_dificuldade = dificuldadeList.value[selectedIndexDificuldade].id
+
+                        val sendBico = RetrofitFactory()
+                            .getBicoService()
+                            .createBico(novoBico)
+
+                        sendBico.enqueue(object : Callback<PostBicoResponse> {
+                            override fun onResponse(
+                                call: Call<PostBicoResponse>,
+                                res: Response<PostBicoResponse>
+                            ) {
+                                Log.i("Response Post: ", res.toString())
+                                Log.i("Bico: ", novoBico.toString())
+                                Log.i("Response Post: ", res.body()!!.toString())
+                            }
+
+                            override fun onFailure(call: Call<PostBicoResponse>, t: Throwable) {
+                                Log.i("Falhou:", t.toString())
+                            }
+                        })
+
+                    },
+
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 30.dp)
+                        .height(46.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(laranja)
+                    ),
+                    elevation = ButtonDefaults.elevatedButtonElevation(
+                        defaultElevation = 5.dp
+                    ),
+                ) {
+                    Text(
+                        text = "CRIAR",
+                        color = Color.White,
+                        fontFamily = Inter,
+                        fontSize = 18.sp,
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
             }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Button(
-                onClick = {
-
-                    novoBico.titulo = tituloState.value
-                    novoBico.descricao = descricaoState.value
-                    novoBico.horario_inicio = horarioState.value
-                    novoBico.horario_limite = horarioPrazoState.value
-                    novoBico.data_inicio = dataState.value
-                    novoBico.data_limite = dataPrazoState.value
-                    novoBico.salario = salarioState.value.toFloat()
-                    novoBico.id_cliente = idCliente.id
-                    novoBico.id_categoria = categoriaList.value[selectedIndexCategoria].id
-                    novoBico.id_dificuldade = dificuldadeList.value[selectedIndexDificuldade].id
-
-                    val sendBico = RetrofitFactory()
-                        .getBicoService()
-                        .createBico(novoBico)
-
-                    sendBico.enqueue(object: Callback<BicoPost> {
-                        override fun onResponse(call: Call<BicoPost>, res: Response<BicoPost>) {
-                            Log.i("ResponseC: ", res.toString())
-                        }
-
-                        override fun onFailure(call: Call<BicoPost>, t: Throwable) {
-                            Log.i("Falhou:", t.toString())
-                        }
-                    })
-
-                },
-                shape = RoundedCornerShape(10.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 30.dp)
-                    .height(46.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(laranja)
-                ),
-                elevation = ButtonDefaults.elevatedButtonElevation(
-                    defaultElevation = 5.dp
-                ),
-            ) {
-                Text(
-                    text = "CRIAR",
-                    color = Color.White,
-                    fontFamily = Inter,
-                    fontSize = 18.sp,
-                )
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
         }
-
     }
 
-}
+
+
 
 @Composable
-fun DropdownCategoria(itemList: List<Categoria>, selectedIndex: Int, onItemClick: (Int) -> Unit) {
+fun DropdownCategoria(
+    itemList: List<Categoria>,
+    selectedIndex: Int,
+    onItemClick: (Int) -> Unit
+) {
 
-    var showDropdown by rememberSaveable { mutableStateOf(true) }
+    var showDropdown by rememberSaveable { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val laranja = 0xffF07B07
 
     Column(
         modifier = Modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center) {
+        verticalArrangement = Arrangement.Center
+    ) {
 
         // button
         Box(
@@ -530,7 +692,13 @@ fun DropdownCategoria(itemList: List<Categoria>, selectedIndex: Int, onItemClick
         }
 
         // dropdown list
-        Box(modifier = Modifier.border(width = 1.dp, color = Color(laranja), shape = RoundedCornerShape(10.dp)),) {
+        Box(
+            modifier = Modifier.border(
+                width = 1.dp,
+                color = Color(laranja),
+                shape = RoundedCornerShape(10.dp)
+            ),
+        ) {
             if (showDropdown) {
                 Popup(
                     alignment = Alignment.TopCenter,
@@ -576,16 +744,21 @@ fun DropdownCategoria(itemList: List<Categoria>, selectedIndex: Int, onItemClick
 }
 
 @Composable
-fun DropdownDificuldade(itemList: List<Dificuldade>, selectedIndex: Int, onItemClick: (Int) -> Unit) {
+fun DropdownDificuldade(
+    itemList: List<Dificuldade>,
+    selectedIndex: Int,
+    onItemClick: (Int) -> Unit
+) {
 
-    var showDropdown by rememberSaveable { mutableStateOf(true) }
+    var showDropdown by rememberSaveable { mutableStateOf(false) }
     val scrollState = rememberScrollState()
     val laranja = 0xffF07B07
 
     Column(
         modifier = Modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center) {
+        verticalArrangement = Arrangement.Center
+    ) {
 
         // button
         Box(
@@ -602,7 +775,13 @@ fun DropdownDificuldade(itemList: List<Dificuldade>, selectedIndex: Int, onItemC
         }
 
         // dropdown list
-        Box(modifier = Modifier.border(width = 1.dp, color = Color(laranja), shape = RoundedCornerShape(10.dp)),) {
+        Box(
+            modifier = Modifier.border(
+                width = 1.dp,
+                color = Color(laranja),
+                shape = RoundedCornerShape(10.dp)
+            ),
+        ) {
             if (showDropdown) {
                 Popup(
                     alignment = Alignment.TopCenter,
@@ -644,5 +823,4 @@ fun DropdownDificuldade(itemList: List<Dificuldade>, selectedIndex: Int, onItemC
             }
         }
     }
-
 }
