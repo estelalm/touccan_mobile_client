@@ -2,6 +2,7 @@ package br.senai.sp.jandira.touccanclient.screens
 
 import android.util.Log
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,12 +16,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -45,7 +48,10 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import br.senai.sp.jandira.touccanclient.MainActivity
 import br.senai.sp.jandira.touccanclient.R
+import br.senai.sp.jandira.touccanclient.model.Bico
 import br.senai.sp.jandira.touccanclient.model.ClientId
+import br.senai.sp.jandira.touccanclient.model.ClienteIdPost
+import br.senai.sp.jandira.touccanclient.model.GetBicoResult
 import br.senai.sp.jandira.touccanclient.service.RetrofitFactory
 import br.senai.sp.jandira.touccanclient.ui.theme.Inter
 import kotlinx.serialization.encodeToString
@@ -60,24 +66,31 @@ fun Home(navController: NavHostController, idCliente: ClientId, mainActivity: Ma
 
     val clienteId = Json.encodeToString(idCliente)
 
-//    var bicosList = remember {
-//        mutableStateOf(listOf<Bico>())
-//    }
-//
-//    val callBicoList = RetrofitFactory()
-//        .getBicoService()
-//        .getAllBicos()
-//
-//    callBicoList.enqueue(object: Callback<ResultBico> {
-//        override fun onResponse(call: Call<ResultBico>, res: Response<ResultBico>) {
-//            Log.i("Response: ", res.toString())
-//            bicosList.value = res.body()!!.bicos
-//        }
-//
-//        override fun onFailure(call: Call<ResultBico>, t: Throwable) {
-//            Log.i("Falhou:", t.toString())
-//        }
-//    })
+    val idClientePost = ClienteIdPost(
+        id_cliente = idCliente.id
+    )
+
+    val isLoadingMeusAnuncios = remember { mutableStateOf(true) }
+
+    var bicosList = remember {
+       mutableStateOf(listOf<Bico>())
+    }
+
+    val callBicoList = RetrofitFactory()
+        .getBicoService()
+        .getBicoByClient(idClientePost)
+
+    callBicoList.enqueue(object: Callback<GetBicoResult> {
+        override fun onResponse(call: Call<GetBicoResult>, res: Response<GetBicoResult>) {
+            Log.i("Response: ", res.toString())
+            bicosList.value = res.body()!!.bico
+            isLoadingMeusAnuncios.value = false
+        }
+
+        override fun onFailure(call: Call<GetBicoResult>, t: Throwable) {
+           Log.i("Falhou:", t.toString())
+        }
+    })
 
 
     val laranja = 0xffF07B07
@@ -279,10 +292,147 @@ fun Home(navController: NavHostController, idCliente: ClientId, mainActivity: Ma
                         }
                     }
                 }
+
+            }
+            LazyColumn (contentPadding = PaddingValues(0.dp)){
+
+                if(meusAnunciosState.value){
+                    if (isLoadingMeusAnuncios.value) {
+                        item(){
+                            Row (modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center){ CircularProgressIndicator() }
+
+                        }
+                    }else{
+                        items(bicosList.value){bico ->
+                            AnuncioCard(bico, navController)
+                        }
+                    }
+
+                }else{
+                    item(){
+                        Text("Não há nenhum trabalho pendente", modifier = Modifier.padding(10.dp))
+                    }
+                }
             }
 
         }
 
+    }
+
+}
+
+@Composable
+fun AnuncioCard(bico: Bico, navController: NavHostController) {
+
+    val grayColor = 0xff6D6D6D
+    val greenColor = 0xff106B16
+    val cinzaEscuro = 0xff888888
+
+    Row (modifier = Modifier.padding(16.dp)){
+        Card (
+            modifier = Modifier.size(35.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.Black
+            ),
+            shape = RoundedCornerShape(50.dp)
+        ){  }
+        Column (
+            modifier = Modifier.padding(vertical = 4.dp, horizontal = 6.dp)
+        ){
+
+            Text(
+                text = "Empresa 1",
+                modifier = Modifier.padding(bottom = 10.dp, start = 4.dp),
+                fontFamily = Inter,
+                color = Color(cinzaEscuro),
+                fontWeight = FontWeight.Normal
+            )
+            Card (modifier = Modifier.clickable {
+//                navController.navigate("detalhesAnuncio/${bico}")
+                navController.navigate("detalhesAnuncio")
+            }){
+                Row (modifier = Modifier
+                    .height(180.dp)
+                    .fillMaxWidth()
+                    .background(Color.White)){
+                    ElevatedCard (
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .width(10.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xffF07B07),
+                        ),
+                        shape = RectangleShape,
+                        elevation = CardDefaults.elevatedCardElevation(
+                            defaultElevation = 10.dp
+                        )
+                    ){}
+                    Column (
+                        modifier = Modifier
+                            .padding(6.dp)
+                            .fillMaxHeight(),
+                        verticalArrangement = Arrangement.SpaceAround
+                    ){
+                        Text(
+                            text = bico.titulo,
+                            fontFamily = Inter,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(grayColor)
+                        )
+                        Text(
+                            text = bico.descricao,
+                            fontFamily = Inter,
+                            fontSize = 15.sp,
+                            lineHeight = 15.sp,
+                            color = Color(cinzaEscuro)
+                        )
+                        Text(
+                            text = "Jandira - SP",
+                            fontFamily = Inter,
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            color = Color(grayColor)
+                        )
+                        Row {
+                            Text(
+                                text = "Dificuldade: ",
+                                fontFamily = Inter,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(grayColor)
+                            )
+                            Text(
+                                text = "Baixa",
+                                fontFamily = Inter,
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold,
+                                color = Color(greenColor)
+                            )
+                        }
+
+                        Row (
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End
+                        ){ Button(
+                            modifier = Modifier.height(32.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xffF07B07)),
+                            onClick = {}
+                        ) {
+                            Text(
+                                text ="Ver candidatos",
+                                fontFamily = Inter,
+                                fontWeight = FontWeight.Normal,
+                                lineHeight = 12.sp,
+                                color = Color.White
+                            )
+                        }
+                        }
+                    }
+                }
+            }
+
+        }
     }
 
 }

@@ -12,6 +12,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import br.senai.sp.jandira.touccanclient.model.ClientId
+import br.senai.sp.jandira.touccanclient.screens.BicoDetails
 import br.senai.sp.jandira.touccanclient.screens.CreateAnuncio
 import br.senai.sp.jandira.touccanclient.screens.Home
 import br.senai.sp.jandira.touccanclient.screens.Login
@@ -56,6 +57,19 @@ class MainActivity : ComponentActivity() {
                             Log.i("User: ", clientId.toString())
                             val idCliente = Json.decodeFromString<ClientId>(clientId ?: "")
                             CreateAnuncio(navController, idCliente, this@MainActivity) }
+
+//                        composable(route = "detalhesAnuncio/{bico}",
+//                            arguments = listOf(navArgument("bico") {
+//                            })
+//                        ){ backStackEntry ->
+//                            val bico = backStackEntry.arguments?.getString("bico")
+//                            val bicoClicado = Json.decodeFromString<Bico>(bico ?: "")
+//                            BicoDetails(navController, bicoClicado, this@MainActivity) }
+//                    }
+
+                        composable(route = "detalhesAnuncio")
+                        {
+                            BicoDetails(navController)}
                     }
 
                 }
