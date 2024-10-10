@@ -161,11 +161,14 @@ fun BicoDetails(navController: NavHostController) {
         }
     ) { innerpadding ->
 
-        Column (modifier = Modifier.padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally){
+        Column (modifier = Modifier.padding(innerpadding), horizontalAlignment = Alignment.CenterHorizontally){
             Row (modifier = Modifier.fillMaxWidth()){
-                Icon(imageVector = Icons.Filled.ArrowBack, "Seta voltar", modifier = Modifier.height(24.dp))
+                IconButton(onClick = {
+                    navController.popBackStack()
+                }) {Icon(imageVector = Icons.Filled.ArrowBack, "Seta voltar", modifier = Modifier.height(24.dp)) }
+
             }
-            Spacer(Modifier.height((200.dp)))
+            Spacer(Modifier.height((100.dp)))
             Card() {
                 Column (modifier = Modifier.padding(24.dp)) {
                     Column () {
