@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import br.senai.sp.jandira.touccanclient.R
-import br.senai.sp.jandira.touccanclient.ui.theme.Inter
+
 
 //fun BicoDetails(navController: NavHostController, bicoClicado: Bico, mainActivity: MainActivity)
 @OptIn(ExperimentalMaterial3Api::class)

@@ -35,7 +35,7 @@ class MainActivity : ComponentActivity() {
                     )
                     NavHost(
                         navController = navController,
-                        startDestination = "home/${idCliente}") {
+                        startDestination = "logIn") {
 
 
                         composable(route = "logIn"){ Login(navController) }
